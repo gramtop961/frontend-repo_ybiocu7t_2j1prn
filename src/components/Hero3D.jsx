@@ -79,10 +79,10 @@ export default function Hero3D() {
 
     // Functional behavior: try to trigger an Enter on the focused element; fallback to contact
     const active = document.activeElement
-    const isEditable = active && (
+    const isEditable = !!active && (
       active.tagName === 'INPUT' ||
       active.tagName === 'TEXTAREA' ||
-      (active as HTMLElement).isContentEditable
+      (active instanceof HTMLElement && active.isContentEditable)
     )
 
     if (isEditable && active) {
@@ -93,7 +93,7 @@ export default function Hero3D() {
       return
     }
 
-    const contactLink = document.querySelector('a[href="#contact"]') as HTMLAnchorElement | null
+    const contactLink = document.querySelector('a[href="#contact"]')
     if (contactLink) {
       contactLink.click()
     } else {
@@ -104,7 +104,7 @@ export default function Hero3D() {
 
   // Physical keyboard: show visual press only (native Enter behavior still applies)
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
+    const onKey = (e) => {
       if (e.key === 'Enter') pressEnterVisual()
     }
     window.addEventListener('keydown', onKey)
