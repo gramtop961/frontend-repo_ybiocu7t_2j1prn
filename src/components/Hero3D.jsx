@@ -1,6 +1,6 @@
 import Spline from '@splinetool/react-spline'
 import { motion, useMotionValue, useSpring, useTransform, useScroll } from 'framer-motion'
-import { useEffect } from 'react'
+import { useEffect, useRef, useCallback } from 'react'
 
 export default function Hero3D() {
   // Mouse-driven parallax/tilt
@@ -24,13 +24,17 @@ export default function Hero3D() {
   const textY = useTransform(scrollYProgress, [0, 0.25], [0, -24])
   const glowOpacity = useTransform(scrollYProgress, [0, 0.25], [1, 0.6])
 
+  // Spline app ref
+  const splineRef = useRef(null)
+  const enterNames = ['Enter', 'Return', 'EnterKey', 'Key_Enter']
+
   useEffect(() => {
     // Initialize to center
     mx.set(0)
     my.set(0)
   }, [])
 
-  function handleMouseMove(e) {
+  const handleMouseMove = (e) => {
     const rect = e.currentTarget.getBoundingClientRect()
     const x = (e.clientX - rect.left) / rect.width // 0..1
     const y = (e.clientY - rect.top) / rect.height // 0..1
@@ -39,10 +43,81 @@ export default function Hero3D() {
     my.set(y - 0.5)
   }
 
-  function handleMouseLeave() {
+  const handleMouseLeave = () => {
     mx.set(0)
     my.set(0)
   }
+
+  const pressEnterVisual = useCallback(() => {
+    const app = splineRef.current
+    if (!app) return
+
+    // Try emitting Spline mouse events to play any built-in press animation/logic
+    const name = enterNames.find((n) => true && n)
+    if (name) {
+      try {
+        app.emitEvent?.('mouseDown', name)
+        setTimeout(() => app.emitEvent?.('mouseUp', name), 120)
+        return
+      } catch {}
+    }
+
+    // Fallback: nudge Z on first matching object for a quick press effect
+    try {
+      const obj = enterNames.map((n) => app.findObjectByName?.(n)).find(Boolean)
+      if (obj) {
+        const originalZ = obj.position.z
+        obj.position.z = originalZ - 2
+        setTimeout(() => { obj.position.z = originalZ }, 140)
+      }
+    } catch {}
+  }, [])
+
+  const handleEnterAction = useCallback(() => {
+    // Visual feedback on the 3D key
+    pressEnterVisual()
+
+    // Functional behavior: try to trigger an Enter on the focused element; fallback to contact
+    const active = document.activeElement
+    const isEditable = active && (
+      active.tagName === 'INPUT' ||
+      active.tagName === 'TEXTAREA' ||
+      (active as HTMLElement).isContentEditable
+    )
+
+    if (isEditable && active) {
+      const kd = new KeyboardEvent('keydown', { key: 'Enter', code: 'Enter', keyCode: 13, which: 13, bubbles: true })
+      const ku = new KeyboardEvent('keyup', { key: 'Enter', code: 'Enter', keyCode: 13, which: 13, bubbles: true })
+      active.dispatchEvent(kd)
+      active.dispatchEvent(ku)
+      return
+    }
+
+    const contactLink = document.querySelector('a[href="#contact"]') as HTMLAnchorElement | null
+    if (contactLink) {
+      contactLink.click()
+    } else {
+      const contact = document.getElementById('contact')
+      contact?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }
+  }, [pressEnterVisual])
+
+  // Physical keyboard: show visual press only (native Enter behavior still applies)
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Enter') pressEnterVisual()
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [pressEnterVisual])
+
+  // Handle click on the 3D Enter key inside the Spline scene
+  const handleSplineMouseDown = useCallback((e) => {
+    const targetName = e?.target?.name
+    if (targetName && enterNames.includes(targetName)) {
+      handleEnterAction()
+    }
+  }, [handleEnterAction])
 
   return (
     <section
@@ -67,6 +142,8 @@ export default function Hero3D() {
           <Spline
             scene="https://prod.spline.design/VJLoxp84lCdVfdZu/scene.splinecode"
             style={{ width: '100%', height: '100%' }}
+            onLoad={(app) => { splineRef.current = app }}
+            onMouseDown={handleSplineMouseDown}
           />
         </motion.div>
       </motion.div>
