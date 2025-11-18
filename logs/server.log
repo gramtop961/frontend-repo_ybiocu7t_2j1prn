@@ -3,11 +3,11 @@
 > vite
 
 
-  VITE v5.4.20  ready in 283 ms
+  VITE v5.4.20  ready in 301 ms
 
   ➜  Local:   http://localhost:3000/
   ➜  Network: http://172.20.19.211:3000/
-5:58:21 PM [vite] warning: The "&&" operator here will always return the right operand
+6:00:19 PM [vite] warning: The "&&" operator here will always return the right operand
 54 |  
 55 |      // Try emitting Spline mouse events to play any built-in press animation/logic
 56 |      const name = enterNames.find((n) => true && n)
